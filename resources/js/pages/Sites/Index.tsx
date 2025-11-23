@@ -133,7 +133,26 @@ export default function Index({ sites, pagination }: IndexProps) {
                                             <tr key={site.id} className="transition duration-150 hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap"><div className="text-sm font-medium text-gray-900">{ ++index }</div></td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">{site.domain}</div>
+                                                    <p>
+                                                        <a
+                                                            href={`http://${site.domain}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm font-medium text-blue-600 hover:text-blue-900 hover:underline"
+                                                        >
+                                                            http://{site.domain}
+                                                        </a>
+                                                    </p>
+                                                    <p>
+                                                        <a
+                                                            href={`https://${site.domain}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-sm font-medium text-blue-600 hover:text-blue-900 hover:underline"
+                                                        >
+                                                            https://{site.domain}
+                                                        </a>
+                                                    </p>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-500">{site.server_ip}</div>
@@ -155,7 +174,7 @@ export default function Index({ sites, pagination }: IndexProps) {
                                                         {site.status !== 'running' && (
                                                             <button
                                                                 onClick={() => handleDeploy(site.id)}
-                                                                className="rounded px-2 py-1 text-green-600 transition duration-150 hover:bg-green-50 hover:text-green-900"
+                                                                className="rounded px-2 py-1 text-green-600 transition duration-150 hover:bg-green-50 hover:text-green-900 cursor-pointer"
                                                                 title="Deploy Site"
                                                             >
                                                                 Deploy
@@ -164,17 +183,22 @@ export default function Index({ sites, pagination }: IndexProps) {
                                                         {site.status === 'running' && (
                                                             <button
                                                                 onClick={() => handleStop(site.id)}
-                                                                className="rounded px-2 py-1 text-yellow-600 transition duration-150 hover:bg-yellow-50 hover:text-yellow-900"
+                                                                className="rounded px-2 py-1 text-orange-600 transition duration-150 hover:bg-yellow-50 hover:text-yellow-900 cursor-pointer"
                                                                 title="Stop Site"
                                                             >
                                                                 Stop
                                                             </button>
                                                         )}
                                                         <Link
+                                                            href={route('sites.edit', site.id)}
+                                                            className="rounded px-2 py-1 text-yellow-600 transition duration-150 hover:bg-red-50 hover:text-red-900 cursor-pointer"
+                                                        >Edit
+                                                        </Link>
+                                                        <Link
                                                             href={route('sites.destroy', site.id)}
                                                             method="delete"
                                                             as="button"
-                                                            className="rounded px-2 py-1 text-red-600 transition duration-150 hover:bg-red-50 hover:text-red-900"
+                                                            className="rounded px-2 py-1 text-red-600 transition duration-150 hover:bg-red-50 hover:text-red-900 cursor-pointer"
                                                             title="Delete Site"
                                                             onClick={(e: React.MouseEvent) => {
                                                                 if (!confirm('Are you sure you want to delete this site?')) {

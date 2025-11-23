@@ -6,6 +6,7 @@ use App\Http\Requests\SiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
 use App\Repositories\SiteRepository;
+use App\Services\RemoteServerService;
 use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
@@ -49,8 +50,58 @@ class SiteController extends Controller
         }
     }
 
+    public function edit(Site $site)
+    {
+        $site_data = $site->toArray();
+        $server_data = $site->server->toArray();
+
+        $data                   = [
+            'site'             => array_merge($site_data, $server_data),
+        ];
+        return Inertia::render('Sites/Edit', $data);
+    }
+
+    public function update(SiteRequest $request, Site $site)
+    {
+        try {
+            $data = $request->validated();
+            $this->siteRepository->update($site, $data);
+            return redirect()->route('sites.index');
+        } catch (\Exception $e) {
+            Log::info($e);
+            return back()
+                ->withInput()
+                ->with('error', 'Failed to create site: ' . $e->getMessage());
+        }
+    }
+
+    public function deploy(Site $site)
+    {
+        try {
+            $this->siteRepository->deploySite($site);
+            return back()->with('success', 'Site deployed');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function stop(Site $site)
+    {
+        try {
+            $this->siteRepository->stopSite($site);
+            return back()->with('success', 'Site stopped');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function destroy(Site $site)
     {
-        return $this->siteRepository->delete($site);
+        try {
+            $this->siteRepository->delete($site);
+            return back()->with('success', 'Site has been deleted');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
     }
 }

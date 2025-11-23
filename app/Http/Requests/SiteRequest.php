@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 
 class SiteRequest extends FormRequest
 {
@@ -22,7 +23,7 @@ class SiteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'domain'            => 'required|string|unique:sites,domain',
+            'domain'            => 'required|string|unique:sites,domain,'.@$this->site->id,
             'server_ip'         => 'required|ip',
             'server_port'       => 'required|integer|between:1,65535',
             'server_username'   => 'required|string',
