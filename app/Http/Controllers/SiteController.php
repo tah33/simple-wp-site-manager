@@ -56,7 +56,7 @@ class SiteController extends Controller
         $server_data = $site->server->toArray();
 
         $data                   = [
-            'site'             => array_merge($site_data, $server_data),
+            'site'             => array_merge($server_data, $site_data),
         ];
         return Inertia::render('Sites/Edit', $data);
     }

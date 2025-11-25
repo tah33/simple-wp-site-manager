@@ -73,9 +73,9 @@ class RemoteServerService
             $dockerComposeContent = $this->generateDockerCompose($site);
 
             $commands = [
-                "mkdir -p /opt/wordpress/{$site->domain}",
-                "cat > /opt/wordpress/{$site->domain}/docker-compose.yml << 'EOF'\n{$dockerComposeContent}\nEOF",
-                "cd /opt/wordpress/{$site->domain} && docker-compose up -d",
+                "mkdir -p /opt/wordpress/{$site->container_name}",
+                "cat > /opt/wordpress/{$site->container_name}/docker-compose.yml << 'EOF'\n{$dockerComposeContent}\nEOF",
+                "cd /opt/wordpress/{$site->container_name} && docker-compose up -d",
                 "sleep 30",
             ];
 
@@ -98,7 +98,7 @@ class RemoteServerService
 
             return true;
         } catch (Exception $e) {
-            Log::error("Deployment failed for {$site->domain}: " . $e->getMessage());
+            Log::error("Deployment failed for {$site->container_name}: " . $e->getMessage());
             return false;
         }
     }
@@ -114,11 +114,11 @@ class RemoteServerService
     public function stopSite(Site $site): bool
     {
         try {
-            $command = "cd /opt/wordpress/{$site->domain} && docker-compose down";
+            $command = "cd /opt/wordpress/{$site->container_name} && docker-compose down";
             $this->executeCommand($command);
             return true;
         } catch (Exception $e) {
-            Log::error("Stop failed for {$site->domain}: " . $e->getMessage());
+            Log::error("Stop failed for {$site->container_name}: " . $e->getMessage());
             return false;
         }
     }
@@ -126,11 +126,11 @@ class RemoteServerService
     public function removeSite(Site $site): bool
     {
         try {
-            $command = "cd /opt/wordpress/{$site->domain} && docker-compose down -v && rm -rf /opt/wordpress/{$site->domain}";
+            $command = "cd /opt/wordpress/{$site->container_name} && docker-compose down -v && rm -rf /opt/wordpress/{$site->container_name}";
             $this->executeCommand($command);
             return true;
         } catch (Exception $e) {
-            Log::error("Removal failed for {$site->domain}: " . $e->getMessage());
+            Log::error("Removal failed for {$site->container_name}: " . $e->getMessage());
             return false;
         }
     }
@@ -152,10 +152,8 @@ class RemoteServerService
     private function generateDockerCompose(Site $site): string
     {
         $httpPort = $site->http_port ?? 8080;
-        $httpsPort = $site->https_port ?? 8443;
 
-        // Sanitize domain for Docker container names (replace invalid characters with underscores)
-        $sanitizedDomain = $site->container_name;
+        $sanitized_domain = $site->container_name;
 
         return <<<YAML
 version: '3.8'
@@ -163,7 +161,7 @@ version: '3.8'
 services:
   database:
     image: mysql:5.7
-    container_name: {$sanitizedDomain}
+    container_name: {$sanitized_domain}
     restart: unless-stopped
     environment:
       MYSQL_DATABASE: {$site->database->mysql_database}
@@ -177,11 +175,10 @@ services:
 
   wordpress:
     image: wordpress:latest
-    container_name: wp_{$sanitizedDomain}
+    container_name: wp_{$sanitized_domain}
     restart: unless-stopped
     ports:
       - "{$httpPort}:80"
-      - "{$httpsPort}:443"
     environment:
       WORDPRESS_DB_HOST: database:3306
       WORDPRESS_DB_USER: {$site->database->mysql_username}

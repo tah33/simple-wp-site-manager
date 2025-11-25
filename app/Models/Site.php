@@ -13,7 +13,6 @@ class Site extends Model
         'domain',
         'container_name',
         'http_port',
-        'https_port',
         'wp_admin_user',
         'wp_admin_email',
         'wp_admin_password',

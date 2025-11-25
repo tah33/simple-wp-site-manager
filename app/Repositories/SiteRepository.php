@@ -35,7 +35,7 @@ class SiteRepository
     {
         $sanitized_domain = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $data['domain']);
 
-        $data['container_name'] = "wp_{$sanitized_domain}";
+        $data['container_name'] = "{$sanitized_domain}";
         $site = Site::create($data);
         $this->updateOthersData($site, $data);
         $this->deploySite($site);
@@ -48,7 +48,7 @@ class SiteRepository
     }
     public function update($site, $data): void
     {
-        $old_domain     = $site->domain;
+        $old_domain     = $site->container_name;
         $old_http_port  = $site->http_port;
         $old_https_port = $site->https_port;
 
@@ -65,7 +65,7 @@ class SiteRepository
 
                 // If domain changed, rename the directory
                 if ($old_domain !== $site->domain) {
-                    $this->remoteService->renameSiteDirectory($old_domain, $site->domain);
+                    $this->remoteService->renameSiteDirectory($old_domain, $site->container_name);
                 }
                 $this->deploySite($site);
             } else {
@@ -76,7 +76,6 @@ class SiteRepository
             $site->update([
                 'domain'        => $old_domain,
                 'http_port'     => $old_http_port,
-                'https_port'    => $old_https_port,
             ]);
         }
     }

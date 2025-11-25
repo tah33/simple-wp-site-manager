@@ -16,7 +16,6 @@ return new class extends Migration
             $table->string('domain');
             $table->string('container_name')->nullable();
             $table->integer('http_port')->nullable();
-            $table->integer('https_port')->nullable();
             $table->text('wp_admin_user')->nullable();
             $table->text('wp_admin_email')->nullable();
             $table->text('wp_admin_password')->nullable(); // Encrypted

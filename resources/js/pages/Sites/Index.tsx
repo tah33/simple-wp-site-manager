@@ -11,7 +11,6 @@ interface Site {
     status: string;
     status_color: string;
     http_port: number;
-    https_port: number;
     last_deployed_at: string | null;
     created_at: string;
 }
@@ -119,7 +118,7 @@ export default function Index({ sites, pagination }: IndexProps) {
                                             <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Domain</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Server</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Ports</th>
+                                            <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">Port</th>
                                             <th className="px-6 py-3 text-left text-xs font-medium tracking-wider text-gray-500 uppercase">
                                                 Last Deployed
                                             </th>
@@ -140,17 +139,7 @@ export default function Index({ sites, pagination }: IndexProps) {
                                                             rel="noopener noreferrer"
                                                             className="text-sm font-medium text-blue-600 hover:text-blue-900 hover:underline"
                                                         >
-                                                            http://{site.domain}
-                                                        </a>
-                                                    </p>
-                                                    <p>
-                                                        <a
-                                                            href={`https://${site.domain}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-sm font-medium text-blue-600 hover:text-blue-900 hover:underline"
-                                                        >
-                                                            https://{site.domain}
+                                                            {site.domain}
                                                         </a>
                                                     </p>
                                                 </td>
@@ -160,7 +149,6 @@ export default function Index({ sites, pagination }: IndexProps) {
                                                 <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(site.status, site.status_color)}</td>
                                                 <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                                     <div>HTTP: {site.http_port}</div>
-                                                    <div>HTTPS: {site.https_port}</div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                                     {site.last_deployed_at ? (

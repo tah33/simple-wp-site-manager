@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Validator;
 
 class SiteRequest extends FormRequest
 {
@@ -31,10 +32,31 @@ class SiteRequest extends FormRequest
             'ssh_password'      => 'required_without:ssh_private_key',
             'ssh_private_key'   => 'required_without:ssh_password',
             'http_port'         => 'required|integer|between:1,65535',
-            'https_port'        => 'required|integer|between:1,65535',
             'wp_admin_user'     => 'required|string',
             'wp_admin_email'    => 'required|email',
             'wp_admin_password' => 'required|min:8',
         ];
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function ($validator) {
+            // Get the site ID for update (will be null for create)
+            $siteId = $this->route('site')?->id ?? null;
+
+            // Check if HTTP port conflicts with ANY port (http or https) on the same server
+            $httpPortConflict = \App\Models\Site::where('http_port', $this->http_port)
+                ->whereHas('server', function ($query) {
+                    $query->where('server_ip', $this->server_ip);
+                })
+                ->when($siteId, function ($query) use ($siteId) {
+                    return $query->where('id', '!=', $siteId);
+                })
+                ->exists();
+
+            if ($httpPortConflict) {
+                $validator->errors()->add('http_port', 'The HTTP port is already in use (as HTTP or HTTPS) on this server.');
+            }
+        });
     }
 }

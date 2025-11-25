@@ -19,7 +19,6 @@ class SiteResource extends JsonResource
             'domain'            => $this->domain,
             'server_ip'         => $this->server->server_ip,
             'http_port'         => $this->http_port,
-            'https_port'        => $this->https_port,
             'status'            => $this->status,
             'status_color'      => $this->status_color,
             'last_deployed_at'  => $this->last_deployed_at,
