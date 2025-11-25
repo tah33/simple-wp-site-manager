@@ -10,7 +10,7 @@ type RouteParams = Record<string, string | number> | string | number;
 // Declare the global route function with proper types
 declare const route: (name: string, params?: RouteParams) => string;
 
-type AuthMethod = 'password' | 'key';
+type AuthMethod = 'password';
 
 interface Site {
     id: number;
@@ -22,7 +22,6 @@ interface Site {
     ssh_password?: string;
     ssh_private_key?: string;
     http_port: number;
-    https_port: number;
     wp_admin_user: string;
     wp_admin_password: string;
     wp_admin_email: string;
@@ -33,7 +32,7 @@ interface EditProps {
 }
 
 export default function Edit({ site }: EditProps) {
-    const [authMethod, setAuthMethod] = useState<AuthMethod>(site.auth_method || 'key');
+    const [authMethod] = useState<AuthMethod>(site.auth_method || 'password');
     const [showSshPassword, setShowSshPassword] = useState(false);
     const [showWpPassword, setShowWpPassword] = useState(false);
 
@@ -42,11 +41,10 @@ export default function Edit({ site }: EditProps) {
         server_ip: site.server_ip || '',
         server_port: site.server_port || 22,
         server_username: site.server_username || 'root',
-        auth_method: site.auth_method || 'key',
+        auth_method: 'password',
         ssh_password: site.ssh_password || '',
         ssh_private_key: site.ssh_private_key || '',
         http_port: site.http_port || 8080,
-        https_port: site.https_port || 8443,
         wp_admin_user: site.wp_admin_user || 'admin',
         wp_admin_password: site.wp_admin_password || '',
         wp_admin_email: site.wp_admin_email || '',
@@ -69,18 +67,6 @@ export default function Edit({ site }: EditProps) {
 
         // @ts-ignore
         put(route('sites.update', site.id), submitData);
-    };
-
-    const handleAuthMethodChange = (method: AuthMethod) => {
-        setAuthMethod(method);
-        setData('auth_method', method);
-
-        // Clear the other auth field when switching methods
-        if (method === 'password') {
-            setData('ssh_private_key', '');
-        } else {
-            setData('ssh_password', '');
-        }
     };
 
     // Eye icon component
@@ -186,7 +172,7 @@ export default function Edit({ site }: EditProps) {
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">SSH Authentication</h2>
 
                                 {/* Authentication Method Selection */}
-                                <div className="mb-6">
+                               {/* <div className="mb-6">
                                     <label className="block text-sm font-medium text-gray-700 mb-3">
                                         Authentication Method *
                                     </label>
@@ -212,10 +198,10 @@ export default function Edit({ site }: EditProps) {
                                             <span className="ml-2">Password</span>
                                         </label>
                                     </div>
-                                </div>
+                                </div>*/}
 
                                 {/* SSH Private Key Field */}
-                                {authMethod === 'key' && (
+                              {/*  {authMethod === 'key' && (
                                     <div>
                                         <label htmlFor="ssh_private_key" className="block text-sm font-medium text-gray-700">
                                             SSH Private Key *
@@ -234,7 +220,7 @@ export default function Edit({ site }: EditProps) {
                                         </p>
                                         {errors.ssh_private_key && <p className="text-red-500 text-sm mt-1">{errors.ssh_private_key}</p>}
                                     </div>
-                                )}
+                                )}*/}
 
                                 {/* SSH Password Field */}
                                 {authMethod === 'password' && (
@@ -264,7 +250,7 @@ export default function Edit({ site }: EditProps) {
                             {/* Port Configuration Section */}
                             <div>
                                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Port Configuration</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                                     {/* HTTP Port */}
                                     <div>
                                         <label htmlFor="http_port" className="block text-sm font-medium text-gray-700">
@@ -283,26 +269,6 @@ export default function Edit({ site }: EditProps) {
                                             External HTTP port for web access
                                         </p>
                                         {errors.http_port && <p className="text-red-500 text-sm mt-1">{errors.http_port}</p>}
-                                    </div>
-
-                                    {/* HTTPS Port */}
-                                    <div>
-                                        <label htmlFor="https_port" className="block text-sm font-medium text-gray-700">
-                                            HTTPS Port *
-                                        </label>
-                                        <input
-                                            type="number"
-                                            id="https_port"
-                                            value={data.https_port}
-                                            onChange={e => setData('https_port', parseInt(e.target.value))}
-                                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
-                                            min="1"
-                                            max="65535"
-                                        />
-                                        <p className="mt-1 text-sm text-gray-500">
-                                            External HTTPS port for secure web access
-                                        </p>
-                                        {errors.https_port && <p className="text-red-500 text-sm mt-1">{errors.https_port}</p>}
                                     </div>
                                 </div>
                             </div>
