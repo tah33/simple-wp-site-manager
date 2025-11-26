@@ -11,54 +11,55 @@ class RemoteServerService
 {
     private SSH2 $ssh;
 
-    public function connect(Site $site): bool
+    public function connect(Site $site): array
     {
+        $logger = app('deployment_logger');
+
         try {
+            $logger->addInfo("Initializing SSH connection to {$site->server->server_ip}:{$site->server->server_port}");
 
             $this->ssh = new SSH2($site->server->server_ip, $site->server->server_port ?? 22);
+            $logger->addSuccess("SSH client initialized");
 
             if ($site->server->auth_method == 'password') {
+                $logger->addInfo("Attempting password authentication for user: {$site->server->server_username}");
+
                 if (!$this->ssh->login($site->server->server_username, $site->server->ssh_password)) {
+                    $logger->addError("SSH password authentication failed");
                     throw new Exception('SSH password authentication failed');
                 }
 
+                $logger->addSuccess("Successfully authenticated with password");
+
             } elseif ($site->server->ssh_private_key) {
+                $logger->addInfo("Attempting SSH key authentication for user: {$site->server->server_username}");
+
                 if (!$this->ssh->login($site->server->server_username, $site->server->ssh_private_key)) {
+                    $logger->addError("SSH key authentication failed");
                     throw new Exception('SSH key authentication failed');
                 }
+
+                $logger->addSuccess("Successfully authenticated with SSH key");
+
             } else {
+                $logger->addError("No authentication method provided");
                 throw new Exception('No SSH key or password provided');
             }
 
-            return true;
+            $logger->addSuccess("SSH connection established successfully");
+
+            return [
+                'success' => true,
+                'log' => $logger->getLogsAsText()
+            ];
+
         } catch (Exception $e) {
-            Log::error("SSH Connection failed for {$site->domain}: " . $e->getMessage());
-            return false;
-        }
-    }
+            $logger->addError("SSH connection failed: " . $e->getMessage());
 
-    // Optional: Method to test connection with custom credentials
-    public function testConnection(string $ip, string $username, $auth, int $port = 22): bool
-    {
-        try {
-            $ssh = new SSH2($ip, $port);
-
-            if (is_string($auth) && str_contains($auth, '-----BEGIN')) {
-                // It's a private key
-                if (!$ssh->login($username, $auth)) {
-                    throw new Exception('SSH key authentication failed');
-                }
-            } else {
-                // It's a password
-                if (!$ssh->login($username, $auth)) {
-                    throw new Exception('SSH password authentication failed');
-                }
-            }
-
-            return true;
-        } catch (Exception $e) {
-            Log::error("SSH Test connection failed for {$ip}: " . $e->getMessage());
-            return false;
+            return [
+                'success' => false,
+                'log' => $logger->getLogsAsText()
+            ];
         }
     }
 
@@ -67,10 +68,21 @@ class RemoteServerService
         return $this->ssh->exec($command);
     }
 
-    public function deployWordPress(Site $site): bool
+    public function deployWordPress(Site $site): array
     {
+        $logger = app('deployment_logger');
+
         try {
+            $logger->addInfo("Starting WordPress deployment for container: {$site->container_name}");
+
+            // Ensure old SSH connection is closed
+            $logger->addInfo("Disconnecting any existing SSH connection");
+            $this->disconnect();
+
+            // Generate docker-compose file
+            $logger->addInfo("Generating docker-compose.yml for {$site->container_name}");
             $dockerComposeContent = $this->generateDockerCompose($site);
+            $logger->addSuccess("docker-compose.yml generated successfully");
 
             $commands = [
                 "mkdir -p /opt/wordpress/{$site->container_name}",
@@ -79,27 +91,52 @@ class RemoteServerService
                 "sleep 30",
             ];
 
-            // Create a new connection and execute all commands
-            if (!$this->connect($site)) {
-                throw new Exception('SSH connection failed');
+            // SSH Connection
+            $logger->addInfo("Establishing SSH connection for deployment...");
+
+            $connection = $this->connect($site);
+
+            if (!$connection['success']) {
+                $logger->addError("SSH connection failed during deployment");
+                throw new Exception("SSH connection failed during WordPress deployment");
             }
 
+            $logger->addSuccess("SSH connection established successfully");
+
+            // Execute commands
             foreach ($commands as $command) {
+                $logger->addInfo("Executing command: {$command}");
+
                 $output = $this->executeCommand($command);
-                Log::info("Command output: " . $output);
+
+                $logger->addInfo("Command output: {$output}");
 
                 if (str_contains($output, 'error') || str_contains($output, 'Error')) {
-                    throw new Exception("Command failed: $command - Output: $output");
+                    $logger->addError("Command failed: {$command} | Output: {$output}");
+                    throw new Exception("Command failed: {$command}");
                 }
+
+                $logger->addSuccess("Command executed successfully: {$command}");
             }
 
-            // Disconnect cause ssh doesn't allow  reopening so when i create another site it gives me error
+            // Disconnect SSH
+            $logger->addInfo("Disconnecting SSH after deployment");
             $this->disconnect();
 
-            return true;
+            $logger->addSuccess("WordPress deployment completed successfully");
+
+            return [
+                'success' => true,
+                'log' => $logger->getLogsAsText()
+            ];
+
         } catch (Exception $e) {
-            Log::error("Deployment failed for {$site->container_name}: " . $e->getMessage());
-            return false;
+            $logger->addError("Deployment failed: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'log' => $logger->getLogsAsText()
+            ];
         }
     }
 
@@ -118,7 +155,8 @@ class RemoteServerService
             $this->executeCommand($command);
             return true;
         } catch (Exception $e) {
-            Log::error("Stop failed for {$site->container_name}: " . $e->getMessage());
+            $message = "Stop failed for {$site->container_name}: " . $e->getMessage();
+            $this->saveLogs($message, $site);
             return false;
         }
     }
@@ -130,21 +168,24 @@ class RemoteServerService
             $this->executeCommand($command);
             return true;
         } catch (Exception $e) {
-            Log::error("Removal failed for {$site->container_name}: " . $e->getMessage());
+            $message = "Removal failed for {$site->container_name}: " . $e->getMessage();
+            $this->saveLogs($message, $site);
             return false;
         }
     }
 
-    public function renameSiteDirectory(string $old_domain, string $new_domain): bool
+    public function renameSiteDirectory(string $old_domain, $site): bool
     {
         try {
+            $new_domain = $site->container_name;
             $command = "mv /opt/wordpress/{$old_domain} /opt/wordpress/{$new_domain}";
             $this->executeCommand($command);
-
-            Log::info("Renamed site directory from {$old_domain} to {$new_domain}");
+            $message = "Renamed site directory from {$old_domain} to {$new_domain}";
+            $this->saveLogs($message, $site);
             return true;
         } catch (Exception $e) {
-            Log::error("Failed to rename site directory: " . $e->getMessage());
+            $message = "Failed to rename site directory: " . $e->getMessage();
+            $this->saveLogs($message, $site);
             return false;
         }
     }

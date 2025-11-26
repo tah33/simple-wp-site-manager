@@ -6,8 +6,6 @@ use App\Http\Requests\SiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
 use App\Repositories\SiteRepository;
-use App\Services\RemoteServerService;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class SiteController extends Controller
