@@ -6,6 +6,7 @@ use App\Http\Requests\SiteRequest;
 use App\Http\Resources\SiteResource;
 use App\Models\Site;
 use App\Repositories\SiteRepository;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 
 class SiteController extends Controller
@@ -41,12 +42,26 @@ class SiteController extends Controller
             $this->siteRepository->store($data);
             return redirect()->route('sites.index');
         } catch (\Exception $e) {
+            Log::info($e->getMessage());
             return back()
                 ->withInput()
                 ->with('error', $e->getMessage());
         }
     }
 
+    public function show(Site $site)
+    {
+        try {
+            $data = [
+                'logs' => $site->deployment_log,
+            ];
+            return Inertia::render('Sites/DeploymentLogs', $data);
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
     public function edit(Site $site)
     {
         try {

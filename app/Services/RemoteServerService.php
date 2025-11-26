@@ -50,7 +50,7 @@ class RemoteServerService
 
             return [
                 'success' => true,
-                'log' => $logger->getLogsAsText()
+                'log' => ''
             ];
 
         } catch (Exception $e) {
@@ -58,7 +58,7 @@ class RemoteServerService
 
             return [
                 'success' => false,
-                'log' => $logger->getLogsAsText()
+                'log' => ''
             ];
         }
     }
@@ -101,8 +101,6 @@ class RemoteServerService
                 throw new Exception("SSH connection failed during WordPress deployment");
             }
 
-            $logger->addSuccess("SSH connection established successfully");
-
             // Execute commands
             foreach ($commands as $command) {
                 $logger->addInfo("Executing command: {$command}");
@@ -127,7 +125,7 @@ class RemoteServerService
 
             return [
                 'success' => true,
-                'log' => $logger->getLogsAsText()
+                'log' => ''
             ];
 
         } catch (Exception $e) {
@@ -135,7 +133,7 @@ class RemoteServerService
 
             return [
                 'success' => false,
-                'log' => $logger->getLogsAsText()
+                'log' => ''
             ];
         }
     }
@@ -148,45 +146,95 @@ class RemoteServerService
         }
     }
 
-    public function stopSite(Site $site): bool
+    public function stopSite(Site $site): array
     {
+        $logger = app('deployment_logger');
+
         try {
+            $logger->addInfo("Stopping container for site: {$site->container_name}");
+
             $command = "cd /opt/wordpress/{$site->container_name} && docker-compose down";
-            $this->executeCommand($command);
-            return true;
+            $logger->addInfo("Executing command: {$command}");
+
+            $output = $this->executeCommand($command);
+            $logger->addInfo("Command output: {$output}");
+
+            $logger->addSuccess("Container stopped successfully");
+
+            return [
+                'success' => true,
+                'log'     => '',
+            ];
+
         } catch (Exception $e) {
-            $message = "Stop failed for {$site->container_name}: " . $e->getMessage();
-            $this->saveLogs($message, $site);
-            return false;
+            $logger->addError("Failed to stop container: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'log'     => '',
+            ];
         }
     }
 
-    public function removeSite(Site $site): bool
+    public function removeSite(Site $site): array
     {
+        $logger = app('deployment_logger');
+
         try {
+            $logger->addInfo("Removing container and files for site: {$site->container_name}");
+
             $command = "cd /opt/wordpress/{$site->container_name} && docker-compose down -v && rm -rf /opt/wordpress/{$site->container_name}";
-            $this->executeCommand($command);
-            return true;
+            $logger->addInfo("Executing command: {$command}");
+
+            $output = $this->executeCommand($command);
+            $logger->addInfo("Command output: {$output}");
+
+            $logger->addSuccess("Container and directory removed successfully");
+
+            return [
+                'success' => true,
+                'log'     => '',
+            ];
+
         } catch (Exception $e) {
-            $message = "Removal failed for {$site->container_name}: " . $e->getMessage();
-            $this->saveLogs($message, $site);
-            return false;
+            $logger->addError("Failed to remove container and directory: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'log'     => '',
+            ];
         }
     }
 
-    public function renameSiteDirectory(string $old_domain, $site): bool
+    public function renameSiteDirectory(string $old_domain, Site $site): array
     {
+        $logger = app('deployment_logger');
+
         try {
             $new_domain = $site->container_name;
+
+            $logger->addInfo("Renaming site directory: {$old_domain} → {$new_domain}");
+
             $command = "mv /opt/wordpress/{$old_domain} /opt/wordpress/{$new_domain}";
-            $this->executeCommand($command);
-            $message = "Renamed site directory from {$old_domain} to {$new_domain}";
-            $this->saveLogs($message, $site);
-            return true;
+            $logger->addInfo("Executing command: {$command}");
+
+            $output = $this->executeCommand($command);
+            $logger->addInfo("Command output: {$output}");
+
+            $logger->addSuccess("Directory renamed successfully");
+
+            return [
+                'success' => true,
+                'log'     => '',
+            ];
+
         } catch (Exception $e) {
-            $message = "Failed to rename site directory: " . $e->getMessage();
-            $this->saveLogs($message, $site);
-            return false;
+            $logger->addError("Failed to rename directory: " . $e->getMessage());
+
+            return [
+                'success' => false,
+                'log'     => '',
+            ];
         }
     }
 

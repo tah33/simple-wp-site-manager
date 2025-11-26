@@ -46,19 +46,12 @@ class DeploymentLoggerService
     {
         return $this->logEntries;
     }
-
-    public function getLogsAsJson(): string
+    public function getLogsAsText(): array
     {
-        return json_encode($this->logEntries);
-    }
-
-    public function getLogsAsText(): string
-    {
-        $text = "";
-        foreach ($this->logEntries as $log) {
-            $text .= "{$log['icon']} [{$log['timestamp']}] {$log['message']}\n";
-        }
-        return $text;
+        return array_map(function($log) {
+            $log['message'] = "{$log['icon']} [{$log['timestamp']}] {$log['message']}\n";
+            return $log;
+        }, $this->logEntries);
     }
 
     public function clear(): void

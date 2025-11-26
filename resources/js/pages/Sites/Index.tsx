@@ -178,6 +178,11 @@ export default function Index({ sites, pagination }: IndexProps) {
                                                             </button>
                                                         )}
                                                         <Link
+                                                            href={route('sites.show', site.id)}
+                                                            className="rounded px-2 py-1 text-blue-700 transition duration-150 hover:bg-red-50 hover:text-red-900 cursor-pointer"
+                                                        >View Logs
+                                                        </Link>
+                                                        <Link
                                                             href={route('sites.edit', site.id)}
                                                             className="rounded px-2 py-1 text-yellow-600 transition duration-150 hover:bg-red-50 hover:text-red-900 cursor-pointer"
                                                         >Edit

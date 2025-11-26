@@ -10,11 +10,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class SiteRepository
 {
     public function __construct(public RemoteServerService $remoteService)
-    {
-    }
+    {}
     public function index(): LengthAwarePaginator
     {
-        return Site::with('server:site_id,server_ip')->whereHas('server')->latest()->paginate();
+        return Site::with('server:site_id,server_ip')->whereHas('server')
+            ->select('id','domain', 'http_port', 'status', 'last_deployed_at')->latest()->paginate();
     }
 
     private function updateOthersData($site, $data): void
@@ -41,9 +41,9 @@ class SiteRepository
 
         try {
             $logger->clear();
-            $logger->addInfo("Generated container name: <strong>{$data['container_name']}</strong>");
             $sanitized_domain = preg_replace('/[^a-zA-Z0-9_.-]/', '_', $data['domain']);
             $data['container_name'] = "{$sanitized_domain}";
+            $logger->addInfo("Generated container name: <strong>{$data['container_name']}</strong>");
             $site = Site::create($data);
             $this->updateOthersData($site, $data);
 
@@ -51,7 +51,7 @@ class SiteRepository
             $this->deploySite($site);
             $logger->addSuccess("WordPress site created and deployed successfully!");
             $site->update([
-                'deployment_log' => $logger->getLogsAsJson(),
+                'deployment_log' => $logger->getLogsAsText(),
                 'status' => 'running'
             ]);
 
@@ -60,7 +60,7 @@ class SiteRepository
             $logger->addError("Site creation failed: " . $e->getMessage());
             if (isset($site)) {
                 $site->update([
-                    'deployment_log' => $logger->getLogsAsJson(),
+                    'deployment_log' => $logger->getLogsAsText(),
                     'status' => 'failed'
                 ]);
             }
@@ -124,7 +124,7 @@ class SiteRepository
 
             // Save logs
             $site->update([
-                'deployment_log' => $logger->getLogsAsJson(),
+                'deployment_log' => $logger->getLogsAsText(),
                 'status'         => 'running'
             ]);
 
@@ -137,29 +137,11 @@ class SiteRepository
             $site->update([
                 'domain'    => $old_domain,
                 'http_port' => $old_http_port,
-                'deployment_log' => $logger->getLogsAsJson(),
+                'deployment_log' => $logger->getLogsAsText(),
                 'status'    => 'failed'
             ]);
 
             throw $e;
-        }
-    }
-
-    public function delete($site): int
-    {
-        if ($this->remoteService->connect($site)) {
-            $this->remoteService->removeSite($site);
-        }
-        return $site->delete();
-    }
-
-    public function stopSite(Site $site): void
-    {
-        if ($this->remoteService->connect($site)) {
-            $success = $this->remoteService->stopSite($site);
-            if ($success) {
-                $site->update(['status' => 'stopped']);
-            }
         }
     }
     /**
@@ -193,7 +175,7 @@ class SiteRepository
             $site->update([
                 'status' => 'running',
                 'last_deployed_at' => now(),
-                'deployment_log' => $logger->getLogsAsJson()
+                'deployment_log' => $logger->getLogsAsText()
             ]);
 
         } catch (Exception $e) {
@@ -201,7 +183,95 @@ class SiteRepository
 
             $site->update([
                 'status' => 'failed',
-                'deployment_log' => $logger->getLogsAsJson()
+                'deployment_log' => $logger->getLogsAsText()
+            ]);
+
+            throw $e;
+        }
+    }
+
+    public function stopSite(Site $site): void
+    {
+        $logger = app('deployment_logger');
+        $logger->clear();
+
+        try {
+            $logger->addInfo("Stopping WordPress site: {$site->container_name}");
+
+            // Connect to server
+            $logger->addInfo("Attempting SSH connection...");
+            $connection = $this->remoteService->connect($site);
+
+            if (!$connection['success']) {
+                $logger->addError("SSH connection failed while stopping site");
+                throw new Exception("Failed to connect to server");
+            }
+
+            $logger->addSuccess("SSH connected successfully");
+
+            // Stop container
+            $logger->addInfo("Executing stop operation on remote server...");
+            $success = $this->remoteService->stopSite($site);
+
+            if ($success) {
+                $logger->addSuccess("Site stopped successfully");
+                $site->update([
+                    'status' => 'stopped',
+                    'deployment_log' => $logger->getLogsAsText(),
+                ]);
+            } else {
+                $logger->addError("Failed to stop remote container");
+                throw new Exception("Failed to stop site remotely");
+            }
+
+        } catch (Exception $e) {
+            $logger->addError("Stopping site failed: " . $e->getMessage());
+
+            $site->update([
+                'deployment_log' => $logger->getLogsAsText(),
+                'status' => 'failed',
+            ]);
+
+            throw $e;
+        }
+    }
+    public function delete($site): int
+    {
+        $logger = app('deployment_logger');
+        $logger->clear();
+
+        try {
+            $logger->addInfo("Deleting WordPress site: {$site->container_name}");
+
+            // Connect to server
+            $logger->addInfo("Attempting SSH connection...");
+            $connection = $this->remoteService->connect($site);
+
+            if ($connection['success']) {
+                $logger->addSuccess("SSH connected successfully");
+
+                // Remove remote container + files
+                $logger->addInfo("Removing site from remote server...");
+                $this->remoteService->removeSite($site);
+                $logger->addSuccess("Remote container removed");
+            } else {
+                $logger->addError("SSH connection failed – skipping remote cleanup");
+            }
+
+            // Delete from DB
+            $logger->addInfo("Deleting site from database...");
+            $result = $site->delete();
+
+            $logger->addSuccess("Site deleted successfully");
+
+            return $result;
+
+        } catch (Exception $e) {
+            $logger->addError("Site deletion failed: " . $e->getMessage());
+
+            $site->update([
+                'deployment_log' => $logger->getLogsAsText(),
+                'status' => 'failed',
             ]);
 
             throw $e;

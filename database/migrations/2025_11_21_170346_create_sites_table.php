@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('wp_admin_password')->nullable(); // Encrypted
             $table->string('status')->default('stopped');
             $table->timestamp('last_deployed_at')->nullable();
-            $table->text('deployment_log')->nullable();
+            $table->json('deployment_log')->nullable();
             $table->timestamps();
         });
     }

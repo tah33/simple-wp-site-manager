@@ -24,7 +24,7 @@ class SiteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'domain'            => 'required|string|unique:sites,domain,'.@$this->site->id,
+            'domain'            => 'required|string',
             'server_ip'         => 'required|ip',
             'server_port'       => 'required|integer|between:1,65535',
             'server_username'   => 'required|string',
@@ -55,7 +55,7 @@ class SiteRequest extends FormRequest
                 ->exists();
 
             if ($httpPortConflict) {
-                $validator->errors()->add('http_port', 'The HTTP port is already in use (as HTTP or HTTPS) on this server.');
+                $validator->errors()->add('http_port', 'The HTTP port is already in use on this server.');
             }
         });
     }

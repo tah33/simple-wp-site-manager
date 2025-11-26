@@ -21,6 +21,10 @@ class Site extends Model
         'deployment_log',
     ];
 
+    protected $casts = [
+        'deployment_log' => 'array',
+    ];
+
     public function server(): HasOne
     {
         return $this->hasOne(Server::class);

@@ -22,7 +22,6 @@ class SiteResource extends JsonResource
             'status'            => $this->status,
             'status_color'      => $this->status_color,
             'last_deployed_at'  => $this->last_deployed_at,
-            'created_at'        => $this->created_at,
         ];
     }
 }
