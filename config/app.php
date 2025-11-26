@@ -84,6 +84,8 @@ return [
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
+    'monitor_token' => env('API_TOKEN', 'tanvir1239'),
+
     /*
     |--------------------------------------------------------------------------
     | Encryption Key

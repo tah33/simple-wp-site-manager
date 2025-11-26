@@ -43,22 +43,26 @@ class SiteController extends Controller
             $this->siteRepository->store($data);
             return redirect()->route('sites.index');
         } catch (\Exception $e) {
-            Log::info($e);
             return back()
                 ->withInput()
-                ->with('error', 'Failed to create site: ' . $e->getMessage());
+                ->with('error', $e->getMessage());
         }
     }
 
     public function edit(Site $site)
     {
-        $site_data = $site->toArray();
-        $server_data = $site->server->toArray();
-
-        $data                   = [
-            'site'             => array_merge($server_data, $site_data),
-        ];
-        return Inertia::render('Sites/Edit', $data);
+        try {
+            $site_data = $site->toArray();
+            $server_data = $site->server->toArray();
+            $data = [
+                'site' => array_merge($server_data, $site_data),
+            ];
+            return Inertia::render('Sites/Edit', $data);
+        } catch (\Exception $e) {
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
     }
 
     public function update(SiteRequest $request, Site $site)
@@ -68,7 +72,6 @@ class SiteController extends Controller
             $this->siteRepository->update($site, $data);
             return redirect()->route('sites.index');
         } catch (\Exception $e) {
-            Log::info($e);
             return back()
                 ->withInput()
                 ->with('error', 'Failed to create site: ' . $e->getMessage());
