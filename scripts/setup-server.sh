@@ -15,6 +15,7 @@ usermod -aG docker $USER
 
 # Configure firewall
 echo "🔥 Configuring firewall..."
+sudo apt install ufw -y
 ufw allow 22/tcp
 ufw allow 80/tcp
 ufw allow 443/tcp
@@ -26,6 +27,9 @@ mkdir -p /opt/wordpress
 mkdir -p /opt/docker-monitor
 chmod 755 /opt/wordpress
 chmod 755 /opt/docker-monitor
+
+docker pull wordpress:latest
+docker pull mysql:5.7
 
 echo "📊 Creating Docker monitor script..."
 cat > /opt/docker-monitor/monitor.sh << 'EOF'

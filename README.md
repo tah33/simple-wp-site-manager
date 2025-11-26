@@ -1,7 +1,8 @@
 # WordPress Site Deployer
 
 A Laravel application to deploy WordPress sites on remote servers using Docker.
-
+****
+**N.B** In this project we're using laragon for local desktop and WSL for VPS/remote server
 
 ## Pre-requisites
 - PHP 8.2 or higher
@@ -50,7 +51,7 @@ or if you don't have laravel installer, you can check with by runnign this comma
 ### Step 2: Configure the environment
 make the below changes in .env file
 
-- `APP_URL=http://192.168.0.103:8000`
+- `APP_URL=http://192.168.0.103:8000` (we'll describe below how/why we use this ip address)
 - `API_TOKEN="tanvir1239"` (it can be anything you want but need to same as our script that we'll add later in this doc)
 - `DB_HOST=127.0.0.1`
 - `DB_PORT=3306`
@@ -92,6 +93,13 @@ localhost will be referred to the WSL localhost.
    2. Configure deployment settings
 
 - Start deploying WordPress sites
+- For creating sites you'll be asked for IP.
+- Run this command to get your ip
+```bash
+  ip addr show eth0
+```
+after running this command you'll find the `inet something` that will be your IP for WSL. Which you need to put during creation of sites.
+
 
 ### Step 6: Monitor the status of docker container
 1. We provide an automated script file called `scripts/docker-monitor.sh`, please copy this file content to `/opt/docker-monitor/monitor.sh` 
@@ -104,13 +112,17 @@ localhost will be referred to the WSL localhost.
 ```bash
   */5 * * * * /opt/docker-monitor/monitor.sh
 ```
-5. Now first add a site in the application and make sure in the docker creates the container or not. You'll get the full log with the details in our application.
-6. Now run this command to check weather our api and bash for updating the status is working or not
+5. After that run this command to make sure that your command is been register in crontab
+```bash
+  crontab -l
+```
+6. Now first add a site in the application and make sure in the docker creates the container or not. You'll get the full log with the details in our application.
+7. Now run this command to check weather our api and bash for updating the status is working or not
 ```bash
    /opt/docker-monitor/monitor.sh
 ```
-7. Now you can see the log in `/var/log/docker-monitor.log`, for checking either our bash is working or not.
-8. We can also check our `laravel.log` file if our api is accepting the request or not
+8. Now you can see the log in `/var/log/docker-monitor.log`, for checking either our bash is working or not.
+9. We can also check our `laravel.log` file if our api is accepting the request or not
 
 ### Step 7: Video Guide (Optional)
 For a visual walkthrough, please watch the below tutorial
