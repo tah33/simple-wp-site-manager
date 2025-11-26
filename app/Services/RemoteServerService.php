@@ -11,7 +11,7 @@ class RemoteServerService
 {
     private SSH2 $ssh;
 
-    public function connect(Site $site): array
+    public function connect(Site $site): bool
     {
         $logger = app('deployment_logger');
 
@@ -48,18 +48,12 @@ class RemoteServerService
 
             $logger->addSuccess("SSH connection established successfully");
 
-            return [
-                'success' => true,
-                'log' => ''
-            ];
+            return true;
 
         } catch (Exception $e) {
             $logger->addError("SSH connection failed: " . $e->getMessage());
 
-            return [
-                'success' => false,
-                'log' => ''
-            ];
+            return false;
         }
     }
 
@@ -68,7 +62,7 @@ class RemoteServerService
         return $this->ssh->exec($command);
     }
 
-    public function deployWordPress(Site $site): array
+    public function deployWordPress(Site $site): bool
     {
         $logger = app('deployment_logger');
 
@@ -94,9 +88,7 @@ class RemoteServerService
             // SSH Connection
             $logger->addInfo("Establishing SSH connection for deployment...");
 
-            $connection = $this->connect($site);
-
-            if (!$connection['success']) {
+            if (! $this->connect($site)) {
                 $logger->addError("SSH connection failed during deployment");
                 throw new Exception("SSH connection failed during WordPress deployment");
             }
@@ -123,18 +115,12 @@ class RemoteServerService
 
             $logger->addSuccess("WordPress deployment completed successfully");
 
-            return [
-                'success' => true,
-                'log' => ''
-            ];
+            return true;
 
         } catch (Exception $e) {
             $logger->addError("Deployment failed: " . $e->getMessage());
 
-            return [
-                'success' => false,
-                'log' => ''
-            ];
+            return false;
         }
     }
 
@@ -146,7 +132,7 @@ class RemoteServerService
         }
     }
 
-    public function stopSite(Site $site): array
+    public function stopSite(Site $site): bool
     {
         $logger = app('deployment_logger');
 
@@ -161,22 +147,16 @@ class RemoteServerService
 
             $logger->addSuccess("Container stopped successfully");
 
-            return [
-                'success' => true,
-                'log'     => '',
-            ];
+            return true;
 
         } catch (Exception $e) {
             $logger->addError("Failed to stop container: " . $e->getMessage());
 
-            return [
-                'success' => false,
-                'log'     => '',
-            ];
+            return false;
         }
     }
 
-    public function removeSite(Site $site): array
+    public function removeSite(Site $site): bool
     {
         $logger = app('deployment_logger');
 
@@ -191,22 +171,16 @@ class RemoteServerService
 
             $logger->addSuccess("Container and directory removed successfully");
 
-            return [
-                'success' => true,
-                'log'     => '',
-            ];
+            return true;
 
         } catch (Exception $e) {
             $logger->addError("Failed to remove container and directory: " . $e->getMessage());
 
-            return [
-                'success' => false,
-                'log'     => '',
-            ];
+            return false;
         }
     }
 
-    public function renameSiteDirectory(string $old_domain, Site $site): array
+    public function renameSiteDirectory(string $old_domain, Site $site): bool
     {
         $logger = app('deployment_logger');
 
@@ -223,21 +197,14 @@ class RemoteServerService
 
             $logger->addSuccess("Directory renamed successfully");
 
-            return [
-                'success' => true,
-                'log'     => '',
-            ];
+            return true;
 
         } catch (Exception $e) {
             $logger->addError("Failed to rename directory: " . $e->getMessage());
 
-            return [
-                'success' => false,
-                'log'     => '',
-            ];
+            return false;
         }
     }
-
     private function generateDockerCompose(Site $site): string
     {
         $httpPort = $site->http_port ?? 8080;

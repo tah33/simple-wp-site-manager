@@ -91,9 +91,8 @@ class SiteRepository
             $logger->addSuccess("Site database updated");
 
             $logger->addInfo("Attempting SSH connection for update...");
-            $connection = $this->remoteService->connect($site);
 
-            if (!$connection['success']) {
+            if (! $this->remoteService->connect($site)) {
                 $logger->addError("SSH connection failed during update");
                 throw new Exception("Failed to connect to server");
             }
@@ -155,19 +154,9 @@ class SiteRepository
         $logger->addInfo("Connecting to server: <strong>{$site->server->server_ip}:{$site->server->server_port}</strong>");
 
         try {
-            $connect_result = $this->remoteService->connect($site);
-            $logger->processServiceLog($connect_result['log']);
-
-            if (!$connect_result['success']) {
-                $logger->addError($connect_result['log']);
-                throw new Exception($connect_result['log']);
-            }
-
+            $this->remoteService->connect($site);
             // Deploy WordPress
-            $deploy_result = $this->remoteService->deployWordPress($site);
-            $logger->processServiceLog($deploy_result['log']);
-
-            if (!$deploy_result['success']) {
+            if (! $this->remoteService->deployWordPress($site)) {
                 $logger->addError("WordPress deployment failed");
                 throw new Exception('WordPress deployment failed');
             }
@@ -200,12 +189,7 @@ class SiteRepository
 
             // Connect to server
             $logger->addInfo("Attempting SSH connection...");
-            $connection = $this->remoteService->connect($site);
-
-            if (!$connection['success']) {
-                $logger->addError("SSH connection failed while stopping site");
-                throw new Exception("Failed to connect to server");
-            }
+            $this->remoteService->connect($site);
 
             $logger->addSuccess("SSH connected successfully");
 
@@ -245,15 +229,20 @@ class SiteRepository
 
             // Connect to server
             $logger->addInfo("Attempting SSH connection...");
-            $connection = $this->remoteService->connect($site);
 
-            if ($connection['success']) {
+            if ($this->remoteService->connect($site)) {
                 $logger->addSuccess("SSH connected successfully");
 
-                // Remove remote container + files
+                // Remove remote container + files + database
                 $logger->addInfo("Removing site from remote server...");
                 $this->remoteService->removeSite($site);
                 $logger->addSuccess("Remote container removed");
+
+                // Also delete the MySQL database
+                $logger->addInfo("Deleting MySQL database...");
+                $this->deleteDatabase($site);
+                $logger->addSuccess("MySQL database deleted");
+
             } else {
                 $logger->addError("SSH connection failed – skipping remote cleanup");
             }
@@ -277,4 +266,24 @@ class SiteRepository
             throw $e;
         }
     }
+
+    private function deleteDatabase(Site $site): void
+    {
+        try {
+            $database_info = $site->database;
+            $db_name = $database_info->mysql_database;
+            $mysql_password = $database_info->mysql_database;
+
+            $command = "docker exec {$site->container_name}-db mysql -u root -p{$mysql_password} -e \"DROP DATABASE IF EXISTS {$db_name};\"";
+
+            $output = $this->remoteService->executeCommand($command);
+            app('deployment_logger')->addInfo("Database deletion command executed - Output: {$output}");
+
+        } catch (Exception $e) {
+            app('deployment_logger')->addError("Database deletion failed: " . $e->getMessage());
+            // Don't throw exception here as we still want to continue with other cleanup
+        }
+    }
+
+
 }
