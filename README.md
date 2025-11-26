@@ -126,3 +126,4 @@ after running this command you'll find the `inet something` that will be your IP
 
 ### Step 7: Video Guide (Optional)
 For a visual walkthrough, please watch the below tutorial
+https://www.awesomescreenshot.com/video/46839160?key=b549c7db69876a26699b9722b80ea023
